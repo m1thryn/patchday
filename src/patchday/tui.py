@@ -12,22 +12,35 @@ from patchday.rendering import (
     published_text,
     severity_text,
 )
+from patchday.theme import TOKYO_NIGHT, rich_style, themed_css
 from patchday.vulns import filter_vulns
 
 
 class PatchdayApp(App):
     TITLE = "Patchday"
 
-    CSS = """
+    CSS = themed_css("""
     Screen {
-        background: $surface;
+        background: @bg@;
+        color: @fg@;
+    }
+
+    Header {
+        background: @bg_dark@;
+        color: @fg@;
+    }
+
+    Footer {
+        background: @bg_dark@;
+        color: @fg_muted@;
     }
 
     #summary {
         height: 3;
         padding: 0 1;
         content-align: left middle;
-        background: $panel;
+        background: @bg_highlight@;
+        color: @fg@;
     }
 
     #body {
@@ -47,12 +60,38 @@ class PatchdayApp(App):
 
     DataTable {
         height: 1fr;
+        background: @bg@;
+        color: @fg@;
+        scrollbar-background: @bg_dark@;
+        scrollbar-color: @border@;
+        scrollbar-color-hover: @blue@;
+        scrollbar-color-active: @cyan@;
+
+        & > .datatable--header {
+            background: @bg_dark@;
+            color: @blue@;
+            text-style: bold;
+        }
+
+        & > .datatable--even-row {
+            background: @bg_dark@;
+        }
+
+        & > .datatable--cursor {
+            background: @bg_highlight@;
+            color: @fg@;
+        }
+
+        &:focus > .datatable--cursor {
+            background: @bg_highlight@;
+            text-style: bold;
+        }
     }
 
     #details {
         height: 1fr;
     }
-    """
+    """)
 
     BINDINGS = [
         ("enter", "load_details", "Load details"),
@@ -115,10 +154,10 @@ class PatchdayApp(App):
         )
         return (
             f"[bold]patchday[/bold]  "
-            f"[cyan]{self.release}[/cyan]  "
-            f"window=[cyan]{window}[/cyan]  "
+            f"[{TOKYO_NIGHT['cyan']}]{self.release}[/]  "
+            f"window=[{TOKYO_NIGHT['cyan']}]{window}[/]  "
             f"shown=[bold]{len(self.vulns)}[/bold]  "
-            f"generated=[dim]{self.generated_at.strftime('%Y-%m-%d %H:%M UTC')}[/dim]"
+            f"generated=[{TOKYO_NIGHT['comment']}]{self.generated_at.strftime('%Y-%m-%d %H:%M UTC')}[/]"
         )
 
     def selected_vuln(self):
@@ -138,7 +177,7 @@ class PatchdayApp(App):
                         "this release."
                     ),
                     title="Details",
-                    border_style="yellow",
+                    border_style=rich_style("yellow"),
                 )
             )
             return

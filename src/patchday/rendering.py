@@ -5,6 +5,7 @@ from rich.table import Table
 from rich.text import Text
 
 from patchday.dates import parse_date
+from patchday.theme import rich_style
 from patchday.vulns import plain_text
 
 
@@ -14,10 +15,10 @@ def normalize_text(value):
 
 def severity_text(severity):
     styles = {
-        "Critical": "bold red",
-        "Important": "bold yellow",
-        "Moderate": "green",
-        "Low": "dim green",
+        "Critical": rich_style("red", "bold"),
+        "Important": rich_style("yellow", "bold"),
+        "Moderate": rich_style("green"),
+        "Low": rich_style("green", "dim"),
     }
     return Text(severity, style=styles.get(severity, "dim"))
 
@@ -49,19 +50,19 @@ def published_text(vuln):
 def detail_renderable(vuln, *, details=None, loading=False, error=None):
     details = details or {}
     raw = vuln.get("raw", {})
-    title = Text(vuln["title"], style="bold")
+    title = Text(vuln["title"], style=rich_style("fg", "bold"))
     summary = Text.assemble(
-        (vuln["cve"], "bold cyan"),
+        (vuln["cve"], rich_style("cyan", "bold")),
         "  ",
         severity_text(vuln["severity"]),
         "  ",
-        ("CVSS=", "bold"),
+        ("CVSS=", rich_style("fg_muted", "bold")),
         cvss_text(vuln, details),
     )
 
     detail = Table(box=box.SIMPLE, show_header=False, expand=True)
-    detail.add_column("Field", style="bold", no_wrap=True)
-    detail.add_column("Value", overflow="fold")
+    detail.add_column("Field", style=rich_style("blue", "bold"), no_wrap=True)
+    detail.add_column("Value", style=rich_style("fg"), overflow="fold")
     add_detail_row(detail, "Published", published_text(vuln))
     add_detail_row(detail, "Release", vuln.get("release"))
     add_detail_row(detail, "CVSS vector", details.get("cvss_vector"))
@@ -97,14 +98,14 @@ def detail_renderable(vuln, *, details=None, loading=False, error=None):
     description = details.get("description")
     description_key = normalize_text(description)
     if description:
-        pieces.append(Text("MSRC description", style="bold"))
-        pieces.append(Text(description))
+        pieces.append(Text("MSRC description", style=rich_style("blue", "bold")))
+        pieces.append(Text(description, style=rich_style("fg")))
     elif loading:
-        pieces.append(Text("Loading MSRC details...", style="yellow"))
+        pieces.append(Text("Loading MSRC details...", style=rich_style("yellow")))
     elif error:
-        pieces.append(Text(f"MSRC detail error: {error}", style="red"))
+        pieces.append(Text(f"MSRC detail error: {error}", style=rich_style("red")))
     else:
-        pieces.append(Text("Press Enter to load MSRC details.", style="dim"))
+        pieces.append(Text("Press Enter to load MSRC details.", style=rich_style("comment")))
 
     articles = details.get("articles", [])
     for article in articles:
@@ -117,17 +118,20 @@ def detail_renderable(vuln, *, details=None, loading=False, error=None):
             continue
         pieces.append(Text(""))
         pieces.append(
-            Text(article.get("title") or article.get("articleType") or "Article", style="bold")
+            Text(
+                article.get("title") or article.get("articleType") or "Article",
+                style=rich_style("blue", "bold"),
+            )
         )
-        pieces.append(Text(article_text))
+        pieces.append(Text(article_text, style=rich_style("fg")))
 
     references = details.get("references", [])
     if references:
         refs = Table(box=box.SIMPLE, show_header=False, expand=True)
-        refs.add_column("References", style="bold", no_wrap=True)
-        refs.add_column("URL", overflow="fold")
+        refs.add_column("References", style=rich_style("blue", "bold"), no_wrap=True)
+        refs.add_column("URL", style=rich_style("cyan"), overflow="fold")
         for index, url in enumerate(references, start=1):
             refs.add_row(str(index), url)
         pieces.append(refs)
 
-    return Panel(Group(*pieces), title="Details", border_style="cyan")
+    return Panel(Group(*pieces), title="Details", border_style=rich_style("cyan"))
