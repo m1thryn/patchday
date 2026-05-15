@@ -36,6 +36,14 @@ def add_detail_row(table, label, value):
         table.add_row(label, str(value))
 
 
+def display_values(value):
+    if value in (None, "", []):
+        return []
+    if not isinstance(value, list):
+        value = [value]
+    return [str(item) for item in value if item not in (None, "")]
+
+
 def cvss_text(vuln, details=None):
     details = details or {}
     cvss = vuln["cvss"] if vuln["cvss"] is not None else details.get("cvss")
@@ -91,12 +99,12 @@ def detail_renderable(vuln, *, details=None, loading=False, error=None):
     )
     add_detail_row(detail, "MSRC published", details.get("published"))
     add_detail_row(detail, "MSRC modified", details.get("last_modified"))
-    add_detail_row(detail, "CWE", ", ".join(details.get("cwe", [])))
+    add_detail_row(detail, "CWE", ", ".join(display_values(details.get("cwe"))))
 
     pieces = [summary, title, detail]
 
     description = details.get("description")
-    description_key = normalize_text(description)
+    normalized_description = normalize_text(description)
     if description:
         pieces.append(Text("MSRC description", style=rich_style("blue", "bold")))
         pieces.append(Text(description, style=rich_style("fg")))
@@ -107,14 +115,16 @@ def detail_renderable(vuln, *, details=None, loading=False, error=None):
     else:
         pieces.append(Text("Press Enter to load MSRC details.", style=rich_style("comment")))
 
-    articles = details.get("articles", [])
+    articles = details.get("articles") or []
     for article in articles:
+        if not isinstance(article, dict):
+            continue
         article_text = plain_text(
             article.get("unformattedDescription") or article.get("description")
         )
         if not article_text:
             continue
-        if normalize_text(article_text) == description_key:
+        if normalize_text(article_text) == normalized_description:
             continue
         pieces.append(Text(""))
         pieces.append(
@@ -125,7 +135,7 @@ def detail_renderable(vuln, *, details=None, loading=False, error=None):
         )
         pieces.append(Text(article_text, style=rich_style("fg")))
 
-    references = details.get("references", [])
+    references = details.get("references") or []
     if references:
         refs = Table(box=box.SIMPLE, show_header=False, expand=True)
         refs.add_column("References", style=rich_style("blue", "bold"), no_wrap=True)
